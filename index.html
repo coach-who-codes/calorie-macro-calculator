@@ -3,8 +3,19 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Calorie &amp; Macro Calculator</title>
+<title>Amit Calorie App</title>
 <meta name="description" content="Work out your daily calories, protein, carbs and fat for fat loss, maintenance or muscle gain.">
+<!-- pwa -->
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="theme-color" content="#ECEFF3" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0E1115" media="(prefers-color-scheme: dark)">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Amit Calorie App">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<!-- /pwa -->
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800&family=Barlow:wght@400;500;600;700&display=swap">
@@ -94,6 +105,45 @@
     text-wrap: balance;
   }
   .intro { margin: 0; max-width: 54ch; color: var(--muted); font-size: 1.0625rem; }
+
+  /* Install tip (only shown when the phone can install the app) */
+  .install {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 10px 10px 10px 14px;
+    background: var(--surface);
+    border: 1.5px solid var(--line);
+    border-radius: 12px;
+  }
+  .install-text { min-width: 0; margin: 0; font-size: 0.9375rem; }
+  .install-actions { display: flex; flex: none; align-items: center; gap: 4px; }
+  .install-btn {
+    min-height: 40px;
+    padding: 0 16px;
+    border: 0;
+    border-radius: 9px;
+    background: var(--ink);
+    color: var(--bg);
+    font: 700 1rem/1 var(--font-display);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    cursor: pointer;
+  }
+  .install-close {
+    width: 40px;
+    height: 40px;
+    border: 0;
+    border-radius: 9px;
+    background: transparent;
+    color: var(--muted);
+    font-size: 1.5rem;
+    line-height: 1;
+    cursor: pointer;
+  }
+  .install-close:hover { background: var(--field); }
+  .install-btn:focus-visible, .install-close:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
 
   /* Page grid */
   .layout {
@@ -442,10 +492,20 @@
 <body>
 <div class="wrap">
   <header class="masthead">
-    <p class="eyebrow">Gym nutrition</p>
-    <h1>Calorie &amp; Macro Calculator</h1>
+    <p class="eyebrow">Calorie &amp; macro calculator</p>
+    <h1>Amit Calorie App</h1>
     <p class="intro">Enter your details. Your daily calories, protein, carbs and fat update as you type.</p>
   </header>
+
+  <!-- pwa -->
+  <div class="install" id="install" hidden>
+    <p class="install-text" id="install-text">Install Amit Calorie App for one-tap access. It works offline too.</p>
+    <div class="install-actions">
+      <button type="button" class="install-btn" id="install-btn" hidden>Install</button>
+      <button type="button" class="install-close" id="install-close" aria-label="Hide install tip">&times;</button>
+    </div>
+  </div>
+  <!-- /pwa -->
 
   <main class="layout">
     <form id="calc" novalidate>
@@ -1035,5 +1095,61 @@
   update();
 })();
 </script>
+<!-- pwa -->
+<script>
+(function () {
+  "use strict";
+
+  // Offline support: cache the app so it opens without internet once installed.
+  if ("serviceWorker" in navigator && window.isSecureContext) {
+    window.addEventListener("load", function () {
+      navigator.serviceWorker.register("sw.js").catch(function () { /* not supported here */ });
+    });
+  }
+
+  var bar = document.getElementById("install");
+  var text = document.getElementById("install-text");
+  var btn = document.getElementById("install-btn");
+  var DISMISS_KEY = "amit-calorie-install-dismissed";
+  var standalone = (window.matchMedia && window.matchMedia("(display-mode: standalone)").matches) ||
+    navigator.standalone === true;
+  var dismissed = false;
+  try { dismissed = localStorage.getItem(DISMISS_KEY) === "1"; } catch (e) { /* storage unavailable */ }
+  if (standalone || dismissed) return;
+
+  var deferred = null;
+
+  // Android / Chrome: show our own Install button.
+  window.addEventListener("beforeinstallprompt", function (e) {
+    e.preventDefault();
+    deferred = e;
+    text.textContent = "Install Amit Calorie App for one-tap access. It works offline too.";
+    btn.hidden = false;
+    bar.hidden = false;
+  });
+
+  // iPhone / iPad: there is no install button, so explain the Share menu step.
+  var isIOS = /iPhone|iPad|iPod/.test(navigator.userAgent) ||
+    (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+  if (isIOS) {
+    text.textContent = "Install on iPhone: tap the Share button, then “Add to Home Screen”.";
+    bar.hidden = false;
+  }
+
+  btn.addEventListener("click", function () {
+    if (!deferred) return;
+    deferred.prompt();
+    deferred.userChoice.then(function () { deferred = null; bar.hidden = true; });
+  });
+
+  document.getElementById("install-close").addEventListener("click", function () {
+    bar.hidden = true;
+    try { localStorage.setItem(DISMISS_KEY, "1"); } catch (e) { /* storage unavailable */ }
+  });
+
+  window.addEventListener("appinstalled", function () { bar.hidden = true; });
+})();
+</script>
+<!-- /pwa -->
 </body>
 </html>
